@@ -1,99 +1,546 @@
-<!-- AUTO-GENERATED-CONTENT:START (STARTER) -->
-<p align="center">
-  <a href="https://www.gatsbyjs.com">
-    <img alt="Gatsby" src="https://www.gatsbyjs.com/Gatsby-Monogram.svg" width="60" />
-  </a>
-</p>
-<h1 align="center">
-  Gatsby's default starter
-</h1>
+## Setting up WordPress locally
 
-Kick off your project with this default boilerplate. This starter ships with the main Gatsby configuration files you might need to get up and running blazing fast with the blazing fast app generator for React.
+> Tools used
+>
+> - Local
 
-_Have another more specific idea? You may want to check out our vibrant collection of [official and community-created starters](https://www.gatsbyjs.com/docs/gatsby-starters/)._
+I created my first local instance of WordPress using LocalWP. For this course, I gave it the domain **gatsby-wordpress-course**. 
 
-## 🚀 Quick start
+## Setting up Gatsby
 
-1.  **Create a Gatsby site.**
+I installed gatsby-cli globally on my machine via npm:
 
-    Use the Gatsby CLI to create a new site, specifying the default starter.
+```
+npm install -g gatsby-cli
+```
 
-    ```shell
-    # create a new Gatsby site using the default starter
-    gatsby new my-default-starter https://github.com/gatsbyjs/gatsby-starter-default
-    ```
+A new project can be created using
 
-1.  **Start developing.**
+```
+gatsby new myawesomeportfolio https://github.com/tomphill/gatsby-wordpress-starter
+```
 
-    Navigate into your new site’s directory and start it up.
+After installation, I made sure that the following configurations are present in the gatsby-config.js file
 
-    ```shell
-    cd my-default-starter/
-    gatsby develop
-    ```
+```jsx
+plugins: [
+    ...
+    {
+      resolve: "gatsby-source-wordpress",
+      options: {
+        baseUrl: "gatsby-wordpress-course.local",
+        ...
+        ],
+      },
+    },
+  ],
+```
 
-1.  **Open the source code and start editing!**
+The project can then be run using
 
-    Your site is now running at `http://localhost:8000`!
+```
+gatsby develop
+```
 
-    _Note: You'll also see a second link: _`http://localhost:8000/___graphql`_. This is a tool you can use to experiment with querying your data. Learn more about using this tool in the [Gatsby tutorial](https://www.gatsbyjs.com/tutorial/part-five/#introducing-graphiql)._
+and visited in localhost:8000 and localhost:8000/__graphql
 
-    Open the `my-default-starter` directory in your code editor of choice and edit `src/pages/index.js`. Save your changes and the browser will update in real time!
+## Rendering Pages and Querying data
 
-## 🧐 What's inside?
+#### Querying Wordpress API using GraphiQL
 
-A quick look at the top-level files and directories you'll see in a Gatsby project.
+To query the created Sample page, the following query can be run
 
-    .
-    ├── node_modules
-    ├── src
-    ├── .gitignore
-    ├── .prettierrc
-    ├── gatsby-browser.js
-    ├── gatsby-config.js
-    ├── gatsby-node.js
-    ├── gatsby-ssr.js
-    ├── LICENSE
-    ├── package-lock.json
-    ├── package.json
-    └── README.md
+```jsx
+{
+  allWordpressPage{
+    edges{
+      node{
+        id
+        title
+        content
+      }
+    }
+  }
+}
+```
 
-1.  **`/node_modules`**: This directory contains all of the modules of code that your project depends on (npm packages) are automatically installed.
+#### Querying Wordpress API from within Gatsby
 
-2.  **`/src`**: This directory will contain all of the code related to what you will see on the front-end of your site (what you see in the browser) such as your site header or a page template. `src` is a convention for “source code”.
+In the project directory under src/pages/inedx.js, I added the following:
 
-3.  **`.gitignore`**: This file tells git which files it should not track / not maintain a version history for.
+```jsx
+import {graphql, StaticQuery} from 'gatsby'
 
-4.  **`.prettierrc`**: This is a configuration file for [Prettier](https://prettier.io/). Prettier is a tool to help keep the formatting of your code consistent.
+const IndexPage = () => (
+  <Layout>
+    <StaticQuery 
+      query={graphql`
+      {
+        allWordpressPage{
+          edges{
+            node{
+              id
+              title
+              content
+            }
+          }
+        }
+      }
+    `} 
+      render={props => (
+      <div>
+        {props.allWordpressPage.edges.map(page => (
+          <div key={page.node.id}>
+            <h1>{page.node.title}</h1>
+            <div dangerouslySetInnerHTML={{__html: page.node.content}} />
+          </div>
+        ))}
+      </div>
+    )} />
+  </Layout>
+)
+```
 
-5.  **`gatsby-browser.js`**: This file is where Gatsby expects to find any usage of the [Gatsby browser APIs](https://www.gatsbyjs.com/docs/browser-apis/) (if any). These allow customization/extension of default Gatsby settings affecting the browser.
+The graphql component allows us to construct a graphQL query while the StaticQuery component executes the query and passes into a render prop the data returned by the query.
 
-6.  **`gatsby-config.js`**: This is the main configuration file for a Gatsby site. This is where you can specify information about your site (metadata) like the site title and description, which Gatsby plugins you’d like to include, etc. (Check out the [config docs](https://www.gatsbyjs.com/docs/gatsby-config/) for more detail).
+#### Generating Gatsby pages dynamically from Wordpress pages & posts
 
-7.  **`gatsby-node.js`**: This file is where Gatsby expects to find any usage of the [Gatsby Node APIs](https://www.gatsbyjs.com/docs/node-apis/) (if any). These allow customization/extension of default Gatsby settings affecting pieces of the site build process.
+I first imported the example gatsby-node.js file from [the documentation](https://github.com/gatsbyjs/gatsby/blob/1da331a5352e3f7cb18f69050b7199481d85fbcb/packages/gatsby-source-wordpress/README.md) into the local project's gatsby-node.js.
 
-8.  **`gatsby-ssr.js`**: This file is where Gatsby expects to find any usage of the [Gatsby server-side rendering APIs](https://www.gatsbyjs.com/docs/ssr-apis/) (if any). These allow customization of default Gatsby settings affecting server-side rendering.
+A react component called pageTemplate and postTemplate must be created under src/templates, so that the **createPage()** function of Gatsby can dynamically create the pages.
 
-9.  **`LICENSE`**: This Gatsby starter is licensed under the 0BSD license. This means that you can see this file as a placeholder and replace it with your own license.
+The *context* key of the **createPage()** function is then passed as a prop *pageContext* which is then used for rendering the template page.js
 
-10. **`package-lock.json`** (See `package.json` below, first). This is an automatically generated file based on the exact versions of your npm dependencies that were installed for your project. **(You won’t change this file directly).**
+```jsx
+import React from 'react'
 
-11. **`package.json`**: A manifest file for Node.js projects, which includes things like metadata (the project’s name, author, etc). This manifest is how npm knows which packages to install for your project.
+export default ( {pageContext} ) => (
+  <div>
+    <h1>
+      {pageContext.title}
+    </h1>
+  </div>
+)
+```
 
-12. **`README.md`**: A text file containing useful reference information about your project.
+#### Fixing 404 not-found on root URL
 
-## 🎓 Learning Gatsby
+We can configure gatsby such that we redirect to whatever we consider the home page. We can do this using the createRedirect API of gatsby.
 
-Looking for more guidance? Full documentation for Gatsby lives [on the website](https://www.gatsbyjs.com/). Here are some places to start:
+```jsx
+//gatsby-node.js
 
-- **For most developers, we recommend starting with our [in-depth tutorial for creating a site with Gatsby](https://www.gatsbyjs.com/tutorial/).** It starts with zero assumptions about your level of ability and walks through every step of the process.
+exports.createPages = ({ graphql, actions }) => {
+  const { createPage, createRedirect } = actions
+  createRedirect({
+    fromPath: '/',
+    toPath: '/home',
+    redirectInBrowser: true,
+    isPermanent: true
+  })
+  ...
+```
 
-- **To dive straight into code samples, head [to our documentation](https://www.gatsbyjs.com/docs/).** In particular, check out the _Guides_, _API Reference_, and _Advanced Tutorials_ sections in the sidebar.
+## Creating a Wordpress Menu
 
-## 💫 Deploy
+#### Removing the Frontend and creating the menu
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/gatsbyjs/gatsby-starter-default)
+We first need to remove the active theme in Wordpress. This is done by uploading [this theme](https://github.com/tomphill/wp-gatsby-js-theme-starter) to Wordpress themes. I then created and published a home and portfolio page. Afterwards, I created a Menu called Main menu.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/gatsbyjs/gatsby-starter-default)
+In order to visit the menu endpoint and query it from the API, I installed a Wordpress plugin called WP API Menus *By* [Fulvio Notarstefano](https://github.com/unfulvio) 
 
-<!-- AUTO-GENERATED-CONTENT:END -->
+#### Querying Wordpress menus with GraphiQL
+
+```jsx
+{
+  allWordpressWpApiMenusMenusItems{
+    edges{
+      node{
+        items{
+          title
+          object_slug
+        }
+      }
+    }
+  }
+}
+```
+
+#### Creating the Menu component in Gatsby
+
+```jsx
+import React from 'react'
+import { StaticQuery, Link } from 'gatsby'
+
+const MainMenu = () => {
+  return (
+    <StaticQuery
+      query={graphql`
+        {
+          allWordpressWpApiMenusMenusItems(filter: {
+            name: {
+              eq: "Main menu"
+            }
+          }){
+            edges{
+              node{
+                name
+                items{
+                  title
+                  object_slug
+                }
+              }
+            }
+          }
+        }
+    `}
+    render={props => (
+      <div>
+        {props.allWordpressWpApiMenusMenusItems.edges[0].node.items.map(item => (
+          <Link to={`/${item.object_slug}`} key={item.title}>
+            {item.title}
+          </Link>
+        ))}
+      </div>
+    )}
+    />
+  )
+}
+
+export default MainMenu
+```
+
+Note that filter is used so that only *Main menu* will be returned by the query, in case there are multiple menus in the page.
+
+#### Styling with styled-components
+
+I first installed the necessary dependencies
+
+```
+npm install gatsby-plugin-styled-components styled-components babel-plugin-styled-components
+```
+
+layout.js was then styled:
+
+```jsx
+import styled, { createGlobalStyle } from 'styled-components'
+
+const GlobalStyles = createGlobalStyle`
+  @import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+  body {
+    font-family: 'Open Sans', sans-serif;
+  }
+`
+
+const LayoutWrapper = styled.div`
+  max-width: 960px;
+  margin: 0 auto;
+  margin: 0 !important;
+  padding: 0 !important;
+`
+
+const Layout = ({ children }) => {
+
+  return (
+    <div>
+      <GlobalStyles />
+      <MainMenu />
+      <LayoutWrapper>
+        {children}
+      </LayoutWrapper>
+    </div>
+  )
+}
+```
+
+And MainMenu.js was styled accordingly as well
+
+```jsx
+const MainMenuWrapper = styled.div`
+  display: flex;
+  background-color: rgb(3, 27, 77);
+`
+
+const MenuItem = styled(Link)`
+  color: white;
+  display: block;
+  padding: 8px 16px;
+`
+
+const MainMenu = () => {
+  return (
+    <StaticQuery
+      query={graphql`
+        {
+          allWordpressWpApiMenusMenusItems(filter: {
+            name: {
+              eq: "Main menu"
+            }
+          }){
+            edges{
+              node{
+                name
+                items{
+                  title
+                  object_slug
+                }
+              }
+            }
+          }
+        }
+    `}
+    render={props => (
+      <MainMenuWrapper>
+        {props.allWordpressWpApiMenusMenusItems.edges[0].node.items.map(item => (
+          <MenuItem to={`/${item.object_slug}`} key={item.title}>
+            {item.title}
+          </MenuItem>
+        ))}
+      </MainMenuWrapper>
+    )}
+    />
+  )
+}
+```
+
+#### Retrieving and rendering the Wordpress site title and tagline
+
+```jsx
+const SiteInfo = () => {
+  return (
+    <StaticQuery
+      query={graphql`
+      {
+        allWordpressSiteMetadata{
+          edges{
+            node{
+              name
+              description
+            }
+          }
+        }
+      }
+      `}
+      render={props => (
+        <SiteInfoWrapper>
+          <SiteTitle>
+            {props.allWordpressSiteMetadata.edges[0].node.name}
+          </SiteTitle>
+          <div>
+            {props.allWordpressSiteMetadata.edges[0].node.description}
+          </div>
+
+        </SiteInfoWrapper>
+      )}
+    />
+  )
+}
+```
+
+## Creating a custom "Portfolio" post type in Wordpress
+
+In the wordpress admin panel, go to Appearance -> Theme editor -> Theme Functions
+
+```php
+<?php
+add_theme_support( 'custom-logo' );
+add_theme_support( 'menus' );
+add_theme_support('post-thumbnails');
+
+function create_custom_portfolio_post_type(){
+	register_post_type('portfolio', 
+					  	array(
+							'labels' => array(
+								'name' => __('Portfolio'),
+								'singular_name' => __('Portfolio')
+							),
+								'public' => true,
+								'show_in_admin_bar' => true,
+								'show_in_rest' => true
+						)
+					  );
+	add_post_type_support('portfolio', array('thumbnail', 'excerpt'));
+}
+
+add_action('init', 'create_custom_portfolio_post_type');
+```
+
+This now allows us to access the portfolio endpoint via 
+
+```
+http://gatsby-wordpress-course.local/wp-json/wp/v2/portfolio
+```
+
+## Querying and rendering the custom "Portfolio" post types
+
+#### Querying the custom portfolio post type with GraphQL
+
+gatsby-config.js has to be edited to include the portfolio endpoint in the includedRoutes
+
+```jsx
+includedRoutes: [
+          "**/categories",
+          "**/posts",
+          "**/pages",
+          "**/media",
+          "**/tags",
+          "**/taxonomies",
+          "**/users",
+          "**/menus",
+          "**/portfolio"
+        ],
+```
+
+Now, Wordpress will generate a graphQL query for us to access the portfolio endpoint
+
+```js
+{
+  allWordpressWpPortfolio{
+    edges{
+      node{
+        title
+        excerpt
+        content
+        featured_media{
+          source_url
+        }
+      }
+    }
+  }
+}
+```
+
+I then created a PortfolioItem.js component, which renders the portfolio items
+
+```jsx
+const PortfolioItems = () => {
+  return (
+    <StaticQuery 
+      query={graphql`
+      {
+        allWordpressWpPortfolio{
+          edges{
+            node{
+              id
+              slug
+              title
+              excerpt
+              content
+              featured_media{
+                source_url
+              }
+            }
+          }
+        }
+      }
+      `}
+      render={props => props.allWodpressWpPortfolio.edges.map(portfolioItem => (
+        <div key={portfolioItem.node.id}>
+          <h2>
+            {portfolioItem.node.title}
+          </h2>
+          <img src={portfolioItem.node.featured_media.source_url} />
+          <div dangerouslySetInnerHTML={{__html: portfolioItem.node.excerpt}} />
+          <Link to={`/portfolio/${portfolioItem.node.slug}`}>Read more</Link>
+        </div>
+      ))}
+    />
+  )
+}
+```
+
+#### Auto-generating portfolio pages in Gatsby
+
+At this point, the file post.js has been renamed into portfolio.js and instead of querying for all posts, we just need to query for portfolio posts. The endpoint has to be updated as well to use /portfolio instead of /post
+
+```jsx
+  graphql(
+      `
+        {
+          allWordpressPage {
+            edges {
+              node {
+                id
+                slug
+                status
+                template
+                title
+                content
+                template
+              }
+            }
+          }
+        }
+      `
+    )
+      .then(result => {
+        if (result.errors) {
+          console.log(result.errors)
+          reject(result.errors)
+        }
+
+        // Create Page pages.
+        const pageTemplate = path.resolve("./src/templates/page.js")
+        // We want to create a detailed page for each
+        // page node. We'll just use the WordPress Slug for the slug.
+        // The Page ID is prefixed with 'PAGE_'
+        _.each(result.data.allWordpressPage.edges, edge => {
+          // Gatsby uses Redux to manage its internal state.
+          // Plugins and sites can use functions like "createPage"
+          // to interact with Gatsby.
+
+          createPage({
+            // Each page is required to have a `path` as well
+            // as a template component. The `context` is
+            // optional but is often necessary so the template
+            // can query data specific to each page.
+            path: `/${edge.node.slug}/`,
+            component: slash(pageTemplate),
+            context: edge.node,
+          })
+        })
+      })
+      // ==== END PAGES ====
+
+      // ==== POSTS (WORDPRESS NATIVE AND ACF) ====
+      .then(() => {
+        graphql(
+          `
+          {
+            allWordpressWpPortfolio{
+              edges{
+                node{
+                  id
+                  slug
+                  title
+                  excerpt
+                  content
+                  featured_media{
+                    source_url
+                  }
+                }
+              }
+            }
+          }
+          `
+        ).then(result => {
+          if (result.errors) {
+            console.log(result.errors)
+            reject(result.errors)
+          }
+          const portfolioTemplate = path.resolve("./src/templates/portfolio.js")
+          // We want to create a detailed page for each
+          // post node. We'll just use the WordPress Slug for the slug.
+          // The Post ID is prefixed with 'POST_'
+          _.each(result.data.allWordpressWpPortfolio.edges, edge => {
+            createPage({
+              path: `/portfolio/${edge.node.slug}/`,
+              component: slash(portfolioTemplate),
+              context: edge.node,
+            })
+          })
+          resolve()
+        })
+      })
+```
+
