@@ -6,13 +6,13 @@
  */
 
 import React from "react"
-import MainMenu from './MainMenu'
+import styled, { createGlobalStyle } from "styled-components"
 
-import styled, { createGlobalStyle } from 'styled-components'
+import MainMenu from "./MainMenu"
 
 const GlobalStyles = createGlobalStyle`
   @import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
-  body {
+  body{
     font-family: 'Open Sans', sans-serif;
     margin: 0 !important;
     padding: 0 !important;
@@ -25,14 +25,11 @@ const LayoutWrapper = styled.div`
 `
 
 const Layout = ({ children }) => {
-
   return (
     <div>
       <GlobalStyles />
       <MainMenu />
-      <LayoutWrapper>
-        {children}
-      </LayoutWrapper>
+      <LayoutWrapper>{children}</LayoutWrapper>
     </div>
   )
 }

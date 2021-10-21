@@ -1,28 +1,31 @@
-## Setting up WordPress locally
+# Gatsby Wordpress Course
 
-> Tools used
->
-> - Local
+#### Setup
 
-I created my first local instance of WordPress using LocalWP. For this course, I gave it the domain **gatsby-wordpress-course**. 
-
-## Setting up Gatsby
-
-I installed gatsby-cli globally on my machine via npm:
-
-```
-npm install -g gatsby-cli
-```
-
-A new project can be created using
+The starter template used is
 
 ```
 gatsby new myawesomeportfolio https://github.com/tomphill/gatsby-wordpress-starter
 ```
 
-After installation, I made sure that the following configurations are present in the gatsby-config.js file
+The preconfigured gatsby-source-wordpress plugin has the following endpoints out of the box:
 
 ```jsx
+        includedRoutes: [
+          "**/categories",
+          "**/posts",
+          "**/pages",
+          "**/media",
+          "**/tags",
+          "**/taxonomies",
+          "**/users",
+          "**/menus"
+        ],
+```
+
+I made sure that the following configurations are also present in gatsby-config:
+
+```js
 plugins: [
     ...
     {
@@ -36,425 +39,21 @@ plugins: [
   ],
 ```
 
-The project can then be run using
+#### Creating pages programatically
 
-```
-gatsby develop
-```
-
-and visited in localhost:8000 and localhost:8000/__graphql
-
-## Rendering Pages and Querying data
-
-#### Querying Wordpress API using GraphiQL
-
-To query the created Sample page, the following query can be run
+We can create pages programatically using the following gatsby-node configuration:
 
 ```jsx
-{
-  allWordpressPage{
-    edges{
-      node{
-        id
-        title
-        content
-      }
-    }
-  }
-}
-```
-
-#### Querying Wordpress API from within Gatsby
-
-In the project directory under src/pages/inedx.js, I added the following:
-
-```jsx
-import {graphql, StaticQuery} from 'gatsby'
-
-const IndexPage = () => (
-  <Layout>
-    <StaticQuery 
-      query={graphql`
-      {
-        allWordpressPage{
-          edges{
-            node{
-              id
-              title
-              content
-            }
-          }
-        }
-      }
-    `} 
-      render={props => (
-      <div>
-        {props.allWordpressPage.edges.map(page => (
-          <div key={page.node.id}>
-            <h1>{page.node.title}</h1>
-            <div dangerouslySetInnerHTML={{__html: page.node.content}} />
-          </div>
-        ))}
-      </div>
-    )} />
-  </Layout>
-)
-```
-
-The graphql component allows us to construct a graphQL query while the StaticQuery component executes the query and passes into a render prop the data returned by the query.
-
-#### Generating Gatsby pages dynamically from Wordpress pages & posts
-
-I first imported the example gatsby-node.js file from [the documentation](https://github.com/gatsbyjs/gatsby/blob/1da331a5352e3f7cb18f69050b7199481d85fbcb/packages/gatsby-source-wordpress/README.md) into the local project's gatsby-node.js.
-
-A react component called pageTemplate and postTemplate must be created under src/templates, so that the **createPage()** function of Gatsby can dynamically create the pages.
-
-The *context* key of the **createPage()** function is then passed as a prop *pageContext* which is then used for rendering the template page.js
-
-```jsx
-import React from 'react'
-
-export default ( {pageContext} ) => (
-  <div>
-    <h1>
-      {pageContext.title}
-    </h1>
-  </div>
-)
-```
-
-#### Fixing 404 not-found on root URL
-
-We can configure gatsby such that we redirect to whatever we consider the home page. We can do this using the createRedirect API of gatsby.
-
-```jsx
-//gatsby-node.js
-
 exports.createPages = ({ graphql, actions }) => {
-  const { createPage, createRedirect } = actions
-  createRedirect({
-    fromPath: '/',
-    toPath: '/home',
-    redirectInBrowser: true,
-    isPermanent: true
-  })
-  ...
-```
-
-## Creating a Wordpress Menu
-
-#### Removing the Frontend and creating the menu
-
-We first need to remove the active theme in Wordpress. This is done by uploading [this theme](https://github.com/tomphill/wp-gatsby-js-theme-starter) to Wordpress themes. I then created and published a home and portfolio page. Afterwards, I created a Menu called Main menu.
-
-In order to visit the menu endpoint and query it from the API, I installed a Wordpress plugin called WP API Menus *By* [Fulvio Notarstefano](https://github.com/unfulvio) 
-
-#### Querying Wordpress menus with GraphiQL
-
-```jsx
-{
-  allWordpressWpApiMenusMenusItems{
-    edges{
-      node{
-        items{
-          title
-          object_slug
-        }
-      }
-    }
-  }
-}
-```
-
-#### Creating the Menu component in Gatsby
-
-```jsx
-import React from 'react'
-import { StaticQuery, Link } from 'gatsby'
-
-const MainMenu = () => {
-  return (
-    <StaticQuery
-      query={graphql`
-        {
-          allWordpressWpApiMenusMenusItems(filter: {
-            name: {
-              eq: "Main menu"
-            }
-          }){
-            edges{
-              node{
-                name
-                items{
-                  title
-                  object_slug
-                }
-              }
-            }
-          }
-        }
-    `}
-    render={props => (
-      <div>
-        {props.allWordpressWpApiMenusMenusItems.edges[0].node.items.map(item => (
-          <Link to={`/${item.object_slug}`} key={item.title}>
-            {item.title}
-          </Link>
-        ))}
-      </div>
-    )}
-    />
-  )
-}
-
-export default MainMenu
-```
-
-Note that filter is used so that only *Main menu* will be returned by the query, in case there are multiple menus in the page.
-
-#### Styling with styled-components
-
-I first installed the necessary dependencies
-
-```
-npm install gatsby-plugin-styled-components styled-components babel-plugin-styled-components
-```
-
-layout.js was then styled:
-
-```jsx
-import styled, { createGlobalStyle } from 'styled-components'
-
-const GlobalStyles = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
-  body {
-    font-family: 'Open Sans', sans-serif;
-  }
-`
-
-const LayoutWrapper = styled.div`
-  max-width: 960px;
-  margin: 0 auto;
-  margin: 0 !important;
-  padding: 0 !important;
-`
-
-const Layout = ({ children }) => {
-
-  return (
-    <div>
-      <GlobalStyles />
-      <MainMenu />
-      <LayoutWrapper>
-        {children}
-      </LayoutWrapper>
-    </div>
-  )
-}
-```
-
-And MainMenu.js was styled accordingly as well
-
-```jsx
-const MainMenuWrapper = styled.div`
-  display: flex;
-  background-color: rgb(3, 27, 77);
-`
-
-const MenuItem = styled(Link)`
-  color: white;
-  display: block;
-  padding: 8px 16px;
-`
-
-const MainMenu = () => {
-  return (
-    <StaticQuery
-      query={graphql`
-        {
-          allWordpressWpApiMenusMenusItems(filter: {
-            name: {
-              eq: "Main menu"
-            }
-          }){
-            edges{
-              node{
-                name
-                items{
-                  title
-                  object_slug
-                }
-              }
-            }
-          }
-        }
-    `}
-    render={props => (
-      <MainMenuWrapper>
-        {props.allWordpressWpApiMenusMenusItems.edges[0].node.items.map(item => (
-          <MenuItem to={`/${item.object_slug}`} key={item.title}>
-            {item.title}
-          </MenuItem>
-        ))}
-      </MainMenuWrapper>
-    )}
-    />
-  )
-}
-```
-
-#### Retrieving and rendering the Wordpress site title and tagline
-
-```jsx
-const SiteInfo = () => {
-  return (
-    <StaticQuery
-      query={graphql`
-      {
-        allWordpressSiteMetadata{
-          edges{
-            node{
-              name
-              description
-            }
-          }
-        }
-      }
-      `}
-      render={props => (
-        <SiteInfoWrapper>
-          <SiteTitle>
-            {props.allWordpressSiteMetadata.edges[0].node.name}
-          </SiteTitle>
-          <div>
-            {props.allWordpressSiteMetadata.edges[0].node.description}
-          </div>
-
-        </SiteInfoWrapper>
-      )}
-    />
-  )
-}
-```
-
-## Creating a custom "Portfolio" post type in Wordpress
-
-In the wordpress admin panel, go to Appearance -> Theme editor -> Theme Functions
-
-```php
-<?php
-add_theme_support( 'custom-logo' );
-add_theme_support( 'menus' );
-add_theme_support('post-thumbnails');
-
-function create_custom_portfolio_post_type(){
-	register_post_type('portfolio', 
-					  	array(
-							'labels' => array(
-								'name' => __('Portfolio'),
-								'singular_name' => __('Portfolio')
-							),
-								'public' => true,
-								'show_in_admin_bar' => true,
-								'show_in_rest' => true
-						)
-					  );
-	add_post_type_support('portfolio', array('thumbnail', 'excerpt'));
-}
-
-add_action('init', 'create_custom_portfolio_post_type');
-```
-
-This now allows us to access the portfolio endpoint via 
-
-```
-http://gatsby-wordpress-course.local/wp-json/wp/v2/portfolio
-```
-
-## Querying and rendering the custom "Portfolio" post types
-
-#### Querying the custom portfolio post type with GraphQL
-
-gatsby-config.js has to be edited to include the portfolio endpoint in the includedRoutes
-
-```jsx
-includedRoutes: [
-          "**/categories",
-          "**/posts",
-          "**/pages",
-          "**/media",
-          "**/tags",
-          "**/taxonomies",
-          "**/users",
-          "**/menus",
-          "**/portfolio"
-        ],
-```
-
-Now, Wordpress will generate a graphQL query for us to access the portfolio endpoint
-
-```js
-{
-  allWordpressWpPortfolio{
-    edges{
-      node{
-        title
-        excerpt
-        content
-        featured_media{
-          source_url
-        }
-      }
-    }
-  }
-}
-```
-
-I then created a PortfolioItem.js component, which renders the portfolio items
-
-```jsx
-const PortfolioItems = () => {
-  return (
-    <StaticQuery 
-      query={graphql`
-      {
-        allWordpressWpPortfolio{
-          edges{
-            node{
-              id
-              slug
-              title
-              excerpt
-              content
-              featured_media{
-                source_url
-              }
-            }
-          }
-        }
-      }
-      `}
-      render={props => props.allWodpressWpPortfolio.edges.map(portfolioItem => (
-        <div key={portfolioItem.node.id}>
-          <h2>
-            {portfolioItem.node.title}
-          </h2>
-          <img src={portfolioItem.node.featured_media.source_url} />
-          <div dangerouslySetInnerHTML={{__html: portfolioItem.node.excerpt}} />
-          <Link to={`/portfolio/${portfolioItem.node.slug}`}>Read more</Link>
-        </div>
-      ))}
-    />
-  )
-}
-```
-
-#### Auto-generating portfolio pages in Gatsby
-
-At this point, the file post.js has been renamed into portfolio.js and instead of querying for all posts, we just need to query for portfolio posts. The endpoint has to be updated as well to use /portfolio instead of /post
-
-```jsx
-  graphql(
+  const { createPage } = actions
+  return new Promise((resolve, reject) => {
+    // The “graphql” function allows us to run arbitrary
+    // queries against the local WordPress graphql schema. Think of
+    // it like the site has a built-in database constructed
+    // from the fetched data that you can run queries against.
+ 
+    // ==== PAGES (WORDPRESS NATIVE) ====
+    graphql(
       `
         {
           allWordpressPage {
@@ -478,7 +77,7 @@ At this point, the file post.js has been renamed into portfolio.js and instead o
           console.log(result.errors)
           reject(result.errors)
         }
-
+ 
         // Create Page pages.
         const pageTemplate = path.resolve("./src/templates/page.js")
         // We want to create a detailed page for each
@@ -488,7 +87,7 @@ At this point, the file post.js has been renamed into portfolio.js and instead o
           // Gatsby uses Redux to manage its internal state.
           // Plugins and sites can use functions like "createPage"
           // to interact with Gatsby.
-
+ 
           createPage({
             // Each page is required to have a `path` as well
             // as a template component. The `context` is
@@ -501,27 +100,199 @@ At this point, the file post.js has been renamed into portfolio.js and instead o
         })
       })
       // ==== END PAGES ====
-
+ 
       // ==== POSTS (WORDPRESS NATIVE AND ACF) ====
       .then(() => {
         graphql(
           `
-          {
-            allWordpressWpPortfolio{
-              edges{
-                node{
-                  id
-                  slug
-                  title
-                  excerpt
-                  content
-                  featured_media{
-                    source_url
+            {
+              allWordpressPost {
+                edges{
+                  node{
+                    id
+                    title
+                    slug
+                    excerpt
+                    content
                   }
                 }
               }
             }
+          `
+        ).then(result => {
+          if (result.errors) {
+            console.log(result.errors)
+            reject(result.errors)
           }
+          const postTemplate = path.resolve("./src/templates/post.js")
+          // We want to create a detailed page for each
+          // post node. We'll just use the WordPress Slug for the slug.
+          // The Post ID is prefixed with 'POST_'
+          _.each(result.data.allWordpressPost.edges, edge => {
+            createPage({
+              path: `/post/${edge.node.slug}/`,
+              component: slash(postTemplate),
+              context: edge.node,
+            })
+          })
+          resolve()
+        })
+      })
+    // ==== END POSTS ====
+  })
+}
+```
+
+We also setup a redirect to `/home`
+
+```jsx
+  const { createPage, createRedirect } = actions
+  createRedirect({fromPath: '/', toPath: '/home', isPermanent: true, redirectInBrowser: true})
+```
+
+#### Creating Wordpress Menu
+
+After creating a menu in Wordpress, we made use of the plugin **WP API Menus** by Fulvio Notarstefano for querying a Wordpress menu endpoint which is located at `wp-json/wp-api-menus/v2/menus/`. We also need to include this in the **includedRoutes** property of gatsby-source-wordpress in our gatsby-config. It can then be queried via graphQL
+
+```jsx
+query MyQuery {
+  allWordpressWpApiMenusMenusItems {
+    edges {
+      node {
+        items {
+          title
+          object_slug
+        }
+      }
+    }
+  }
+}
+```
+
+
+
+#### Site Tagline
+
+We can change the site tagline by going to the Wordpress admin dashboard, Appearance -> customize. This can be queried with
+
+```jsx
+query MyQuery {
+  allWordpressSiteMetadata {
+    edges {
+      node {
+        name
+        description
+      }
+    }
+  }
+}
+```
+
+
+
+#### Wordpress Custom Post type
+
+In this section, we created a custom post type for portfolio posts. This custom post type will be displayed on the left sidebar of the admin dashboard. We can do this by editing the theme's *functions.php*. The file can be found in `\app\public\wp-content\themes\wp-gatsby-js-theme-starter-master`.
+
+We use the built in function **register_post_type()** which takes two arguments. The first will be the name of the post type, and the second is an array of options that we can pass in when registering a post type.
+
+```php+HTML
+<?php
+add_theme_support( 'custom-logo' );
+add_theme_support( 'menus' );
+add_theme_support('post-thumbnails');
+
+function create_custom_portfolio_post_type(){
+	register_post_type('portfolio', 
+					  	array(
+							'labels' => array(
+								'name' => __('Portfolio'),
+								'singular_name' => __('Portfolio')
+							),
+								'public' => true,
+								'show_in_admin_bar' => true,
+								'show_in_rest' => true
+						)
+					  );
+	add_post_type_support('portfolio', array('thumbnail', 'excerpt'));
+}
+
+add_action('init', 'create_custom_portfolio_post_type');
+```
+
+We then add support to custom post types using **add_post_type_support** wherein we allow adding of a thumbnail and an excerpt to our custom portfolio post type. Finally we add to wordpress by hooking the function into the init function.
+
+This now allows us to access the portfolio posts via the endpoint
+
+```
+http://gatsby-wordpress-course.local/wp-json/wp/v2/portfolio
+```
+
+
+
+#### Querying Custom Post Types with GraphQL
+
+We first add the new endpoint (portfolio) to our includedRoutes in gatsby-config
+
+```jsx
+        includedRoutes: [
+          "**/categories",
+          "**/posts",
+          "**/pages",
+          "**/media",
+          "**/tags",
+          "**/taxonomies",
+          "**/users",
+          "**/menus",
+          "**/portfolio"
+        ],
+```
+
+Once we added portfolio tot he includedRoutes, we can now query it using GraphQL
+
+```jsx
+const query = graphql`
+  {
+    allWordpressWpPortfolio {
+      edges {
+        node {
+          id
+          excerpt
+          title
+          slug
+          featured_media {
+            source_url
+          }
+        }
+      }
+    }
+  }
+`
+```
+
+#### Auto-generating the custom portfolio pages in Gatsby
+
+At this point, we refactor our code. Instead of querying for posts, we query for portfolio post types. In gatsby-node.js, we use the graphql query allWordpressWpPortfolio, and then instead of using *post.js* as our template, we make use of *portfolio.js*. Likewise, the node endpoint has to be updated to `/portfolio`.
+
+```js
+      .then(() => {
+        graphql(
+          `
+            {
+              allWordpressWpPortfolio {
+                edges {
+                  node {
+                    id
+                    excerpt
+                    title
+                    slug
+                    featured_media {
+                      source_url
+                    }
+                  }
+                }
+              }
+            }
           `
         ).then(result => {
           if (result.errors) {
@@ -543,4 +314,219 @@ At this point, the file post.js has been renamed into portfolio.js and instead o
         })
       })
 ```
+
+#### Creating a custom page template in Wordpress to conditionally render Portfolio Items
+
+We don't want our PortfolioItems component to render in every page. We can set up a custom page template in Wordpress so that we can check if a page is using a specific template. We create a template called **portfolio_under_content.php** in 
+
+`\gatsby-wordpress-course\app\public\wp-content\themes\wp-gatsby-js-theme-starter-master`
+
+```php
+<?php /* Template name: Portfolio items below content */ ?>
+```
+
+We can now see this Template when editing our Wordpress page. We then proceed on conditionally rendering the portfolio items using the template **portfolioUnderContent.js**
+
+```js
+        const pageTemplate = path.resolve("./src/templates/page.js")
+        const portfolioUnderContentTemplate = path.resolve("./src/templates/portfolioUnderContent.js")
+        // We want to create a detailed page for each
+        // page node. We'll just use the WordPress Slug for the slug.
+        // The Page ID is prefixed with 'PAGE_'
+        _.each(result.data.allWordpressPage.edges, edge => {
+          // Gatsby uses Redux to manage its internal state.
+          // Plugins and sites can use functions like "createPage"
+          // to interact with Gatsby.
+          createPage({
+            // Each page is required to have a `path` as well
+            // as a template component. The `context` is
+            // optional but is often necessary so the template
+            // can query data specific to each page.
+            path: `/${edge.node.slug}/`,
+            component: slash( edge.node.template === 'portfolio_under_content.php' ? portfolioUnderContentTemplate : pageTemplate),
+            context: edge.node,
+          })
+        })
+      })
+```
+
+#### Adding ACF
+
+Advanced Custom Fields allows us to setup custom fields to show up in our posts. We installed 2 plugins for this: **Advanced Custom FIelds** and **ACF to REST API**. This will allow us to query the ACF fields at the acf endpoint. 
+
+```jsx
+query MyQuery {
+  allWordpressWpPortfolio {
+    edges {
+      node {
+        acf {
+          portfolio_url
+        }
+      }
+    }
+  }
+}
+```
+
+#### Adding Pagination
+
+We first set up our gatsby-node to query retrieve blog posts. We add the following to our promise chain in the gatsby-node.js file.
+
+```js
+      // ==== BLOG POSTS ====
+      .then(() => {
+        graphql(`
+        allWordpressPost {
+          edges {
+            node {
+              title
+              content
+              excerpt
+              wordpress_id
+              date(formatString: "Do MMM YYYY hh:mm")
+            }
+          }
+        }
+        `).then(result => {
+          if (result.errors) {
+            console.log(result.errors)
+            reject(result.errors)
+          }
+          // PAGINATION LOGIC
+
+          resolve()
+        })
+      })
+```
+
+To render the correct number of pages, we use **Math.ceil()** method. We then create an array with a length based on this number of pages. We call the **createPage()** method in a forEach loop, and in it we specify the path and the context. For the context, we will not be passing the whole posts object, instead we will only be passing the posts corresponding to the current page. Aside from this, we also pass the total number of pages, the number of the current page (which will be useful in the next section to be able to style the page number of the current page), and finally, the template for the component.
+
+```jsx
+          // PAGINATION LOGIC
+          const posts = result.data.allWordpressPost.edges
+          const postsPerPage = 2
+          const numberOfPages = Math.ceil(posts.length / postsPerPage)
+          const blogPostListTemplate = path.resolve('./src/templates/blogPostList.js')
+
+          Array.from({ length: numberOfPages }).forEach((page, index) => {
+            createPage({
+              component: slash(blogPostListTemplate),
+              path: index === 0 ? `/blog` : `/blog/${index + 1}`,
+              context: {
+                posts: posts.slice(
+                  index * postsPerPage,
+                  index * postsPerPage + postsPerPage
+                ),
+                numberOfPages,
+                currentPage: index + 1,
+              },
+            })
+          })
+```
+
+To render the navigation buttons, we use the same method as above.
+
+```jsx
+    {Array.from({ length: pageContext.numberOfPages }).map((page, index) => {
+      return (
+        <div key={index}>
+          <Link to={index === 0 ? '/blog' : `/blog/${index + 1}`}>
+            {index + 1}
+          </Link>
+        </div>
+      )
+    })}
+```
+
+To style the current page number, we can pass a prop in our styled component to check if the index is equal to the currentPage that we received from the previous section.
+
+```jsx
+const PageNumberWrapper = styled.div`
+  border: 1px solid #eee;
+  background: ${props => props.isCurrentPage ? '#eee' : 'white'};
+`
+
+<PageNumberWrapper key={index} isCurrentPage={index + 1 === pageContext.currentPage}>
+```
+
+To add the Blogs to our header, we go to the admin dashboard and under Menus, we add a Custom Link to `/blog`.
+
+To create the blog posts, we loop through the array of pages from the previous section. We can use **lodash _.each** to achieve this.
+
+```jsx
+          const pageTemplate = path.resolve("./src/templates/page.js")
+          _.each(posts, (post) => {
+            createPage({
+              path: `/post/${post.node.slug}`,
+              component: slash(pageTemplate),
+              context: post.node
+            })
+          })
+```
+
+#### Wordpress Deployment
+
+I used Digital Ocean's one click wordpress Droplet on Ubuntu 20.04
+
+I then setup the DNS A records to point to the ipv4 address of the Digital Ocean droplet.
+
+```
+@
+A
+128.199.182.220
+
+www
+A
+128.199.182.220
+
+wp
+A
+128.199.182.220
+```
+
+A good practice is to ping the subdomain to know if the DNS has resolved and already propagated over the internet.
+
+```
+ping wp.demiglace.xyz
+```
+
+I then SSHed into the Digital Ocean Droplet to set up the one click Wordpress installation. I enable LetsEncrypt SSL for wp.demiglace.xyz and also enabled redirecting HTTP to HTTPS.
+
+To migrate the local wordpress. We used the plugin All-in-One Migration tool. We need to first setup directory and file permissions to enable FTP. We run the following commands via SSH:
+
+```
+chown -R www-data:www-data /var/www
+find /var/www -type d -exec chmod 755 {} \;
+find /var/www -type f -exec chmod 644 {} \;
+```
+
+Out of the box, Wordpress has a 16MB file size limit. To increase the maximum upload file size in WordPress, we can update `.htaccess`
+
+```
+php_value upload_max_filesize 128M
+php_value post_max_size 128M
+php_value memory_limit 256M
+php_value max_execution_time 300
+php_value max_input_time 300
+```
+
+We also need to update `wp-config.php`
+
+```
+@ini_set('upload_max_filesize', '128M');
+@ini_set('post_max_size', '128M');
+@ini_set('memory_limit', '256M');
+@ini_set('max_execution_time', '300');
+@init_set('max_input_time', '300');
+```
+
+We can find the above 2 files in 
+
+```
+cd /var/www/html
+```
+
+Once this is done, we are now able to upload files larger than 16MB, in this case, we set the max to 128MB.
+
+#### Uploading to Netlify
 

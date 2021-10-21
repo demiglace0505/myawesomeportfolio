@@ -1,3 +1,11 @@
+/**
+ * Implement Gatsby's Node APIs in this file.
+ *
+ * See: https://www.gatsbyjs.org/docs/node-apis/
+ */
+
+// You can delete this file if you're not using it
+
 const _ = require(`lodash`)
 const Promise = require(`bluebird`)
 const path = require(`path`)
@@ -12,10 +20,10 @@ const slash = require(`slash`)
 exports.createPages = ({ graphql, actions }) => {
   const { createPage, createRedirect } = actions
   createRedirect({
-    fromPath: '/',
-    toPath: '/home',
+    fromPath: "/",
+    toPath: "/home",
+    isPermanent: true,
     redirectInBrowser: true,
-    isPermanent: true
   })
   return new Promise((resolve, reject) => {
     // The “graphql” function allows us to run arbitrary
@@ -51,6 +59,9 @@ exports.createPages = ({ graphql, actions }) => {
 
         // Create Page pages.
         const pageTemplate = path.resolve("./src/templates/page.js")
+        const portfolioUnderContentTemplate = path.resolve(
+          "./src/templates/portfolioUnderContent.js"
+        )
         // We want to create a detailed page for each
         // page node. We'll just use the WordPress Slug for the slug.
         // The Page ID is prefixed with 'PAGE_'
@@ -58,40 +69,49 @@ exports.createPages = ({ graphql, actions }) => {
           // Gatsby uses Redux to manage its internal state.
           // Plugins and sites can use functions like "createPage"
           // to interact with Gatsby.
-
+          // console.log("--------------")
+          // console.log(edge.node.title, edge.node.template)
+          // console.log("--------------")
           createPage({
             // Each page is required to have a `path` as well
             // as a template component. The `context` is
             // optional but is often necessary so the template
             // can query data specific to each page.
             path: `/${edge.node.slug}/`,
-            component: slash(pageTemplate),
+            component: slash(
+              edge.node.template === "portfolio_under_content.php"
+                ? portfolioUnderContentTemplate
+                : pageTemplate
+            ),
             context: edge.node,
           })
         })
       })
       // ==== END PAGES ====
 
-      // ==== POSTS (WORDPRESS NATIVE AND ACF) ====
+      // ==== PORTFOLIO (WORDPRESS NATIVE AND ACF) ====
       .then(() => {
         graphql(
           `
-          {
-            allWordpressWpPortfolio{
-              edges{
-                node{
-                  id
-                  slug
-                  title
-                  excerpt
-                  content
-                  featured_media{
-                    source_url
+            {
+              allWordpressWpPortfolio {
+                edges {
+                  node {
+                    id
+                    excerpt
+                    title
+                    slug
+                    content
+                    featured_media {
+                      source_url
+                    }
+                    acf {
+                      portfolio_url
+                    }
                   }
                 }
               }
             }
-          }
           `
         ).then(result => {
           if (result.errors) {
@@ -109,9 +129,66 @@ exports.createPages = ({ graphql, actions }) => {
               context: edge.node,
             })
           })
+        })
+      })
+      // ==== END PORTFOLIO ====
+
+      // ==== BLOG POSTS ====
+      .then(() => {
+        graphql(`
+          {
+            allWordpressPost {
+              edges {
+                node {
+                  title
+                  content
+                  excerpt
+                  wordpress_id
+                  date(formatString: "Do MMM YYYY hh:mm")
+                  slug
+                }
+              }
+            }
+          }
+        `).then(result => {
+          if (result.errors) {
+            console.log(result.errors)
+            reject(result.errors)
+          }
+          // PAGINATION LOGIC
+          const posts = result.data.allWordpressPost.edges
+          const postsPerPage = 2
+          const numberOfPages = Math.ceil(posts.length / postsPerPage)
+          const blogPostListTemplate = path.resolve('./src/templates/blogPostList.js')
+
+          Array.from({ length: numberOfPages }).forEach((page, index) => {
+            createPage({
+              component: slash(blogPostListTemplate),
+              path: index === 0 ? `/blog` : `/blog/${index + 1}`,
+              context: {
+                posts: posts.slice(
+                  index * postsPerPage,
+                  index * postsPerPage + postsPerPage
+                ),
+                numberOfPages,
+                currentPage: index + 1,
+              },
+            })
+          })
+
+          const pageTemplate = path.resolve("./src/templates/page.js")
+          _.each(posts, (post) => {
+            createPage({
+              path: `/post/${post.node.slug}`,
+              component: slash(pageTemplate),
+              context: post.node
+            })
+          })
+
           resolve()
         })
       })
-    // ==== END POSTS ====
+
+    // ==== END BLOG POSTS ====
   })
 }
