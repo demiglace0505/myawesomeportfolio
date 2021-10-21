@@ -530,3 +530,45 @@ Once this is done, we are now able to upload files larger than 16MB, in this cas
 
 #### Uploading to Netlify
 
+We update gatsby-config's gatsby-source-wordpress to make use of the live Wordpress URL. Instead of hardcoding values, we can make use of environment variables for this. In Netlify, we configure the following variables, for `API_URL`:
+
+```
+wp.demiglace.xyz
+```
+
+and for `API_PROTOCOL`
+
+```
+https
+```
+
+In the local gatsby-config,
+
+```js
+      resolve: "gatsby-source-wordpress",
+      options: {
+        baseUrl: process.env.API_URL,
+        protocol: process.env.API_PROTOCOL,
+```
+
+The following are the values for the local .env file
+
+```
+API_URL=gatsby-wordpress-course.local
+API_POROTOCOL=http
+```
+
+We also need to install the plugin `gatsby-plugin-netlify` and add it to gatsby-config
+
+Before uploading to Netlify, we first need to push our code into an online repository. We need to configure such that a deploy is made everytime a change is made to master. The build command will be
+
+```
+gatsby build
+```
+
+and the publish directory
+
+```
+public
+```
+

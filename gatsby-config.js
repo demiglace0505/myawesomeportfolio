@@ -9,6 +9,7 @@ module.exports = {
     author: `@tomphill`,
   },
   plugins: [
+    `gatsby-plugin-netlify`,
     `gatsby-plugin-styled-components`,
     `gatsby-plugin-react-helmet`,
     {
