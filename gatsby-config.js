@@ -37,10 +37,8 @@ module.exports = {
       resolve: "gatsby-source-wordpress",
       options: {
         minimizeDeprecationNotice: true,
-        baseUrl: 'wp.demiglace.xyz',
-        protocol: 'https',
-        // baseUrl: process.env.API_URL,
-        // protocol: process.env.API_PROTOCOL,
+        baseUrl: process.env.API_URL,
+        protocol: process.env.API_PROTOCOL,
         hostingWPCOM: false,
         useACF: true,
         verboseOutput: false,
