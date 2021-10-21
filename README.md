@@ -558,7 +558,7 @@ API_URL=gatsby-wordpress-course.local
 API_POROTOCOL=http
 ```
 
-We also need to install the plugin `gatsby-plugin-netlify` and add it to gatsby-config
+We also need to install the plugin `gatsby-plugin-netlify` and add it to gatsby-config.
 
 Before uploading to Netlify, we first need to push our code into an online repository. We need to configure such that a deploy is made everytime a change is made to master. The build command will be
 
@@ -571,4 +571,10 @@ and the publish directory
 ```
 public
 ```
+
+#### Automatic Deployments
+
+We can set up automatic deployments so that whenever a change is made in our Wordpress backend, a new build of the frontend will be made. For this, we used the Wordpress plugin JAMstack Deployments by Christopher Geary.
+
+In this plugin, we need to configure the build hook, and badges which we can obtain from Netlify. The Hook method is POST.
 
